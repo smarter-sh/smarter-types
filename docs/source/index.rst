@@ -1,5 +1,5 @@
-smarter-types
-=============
+smarter-types |project_version|
+===============================
 
 .. image:: https://img.shields.io/badge/a%20project%20of-The%20Smarter%20Project-2F6FEB
    :target: https://smarter.sh
@@ -13,7 +13,7 @@ smarter-types
    :target: https://codecov.io/gh/smarter-sh/smarter-types
    :alt: Coverage
 
-.. image:: https://img.shields.io/pypi/v/smarter-types?logo=pypi&logoColor=white
+.. image:: https://img.shields.io/pypi/v/smarter-types?logo=pypi&logoColor=white&label=PyPI
    :target: https://pypi.org/project/smarter-types/
    :alt: PyPI
 
