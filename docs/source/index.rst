@@ -28,14 +28,12 @@ smarter-types
 
 **smarter-types** holds the plain-Python type definitions that the
 `Smarter <https://github.com/smarter-sh/smarter>`__ platform and its
-`Python SDK <https://github.com/smarter-sh/smarter-python>`__ share, so that
-each is defined once rather than copied into both, where the copies drift
-apart.
+`Python SDK <https://github.com/smarter-sh/smarter-python>`__ use together.
+It provides shared definitions for Smarter Application Manifest (SAM) kinds,
+their apply order, and the Smarter Journal's things and cli commands.
 
-Its first release holds the enumerations that Smarter's manifest brokers are
-built on: every kind of Smarter Application Manifest (SAM), the order in which
-to apply manifests of several kinds, and the Smarter Journal's things and cli
-commands.
+These definitions give the platform and SDK a consistent contract while
+keeping the package usable in plain Python, without Django.
 
 .. code-block:: python
 

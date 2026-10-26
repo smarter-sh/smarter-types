@@ -2,12 +2,11 @@ Why smarter-types Exists
 ========================
 
 The Smarter platform (a Django application) and the Smarter Python SDK
-(``smarter-api``) speak the same language: the same kinds of manifest, the
-same cli verbs, the same journal. Each used to define those enumerations
-itself, so adding a kind meant changing both, and forgetting one made the SDK
-reject a manifest that the platform accepts, or the other way round.
+(``smarter-api``) need consistent definitions for manifest kinds, cli verbs
+and journal entries. smarter-types provides these shared definitions so both
+projects use the same values and behavior.
 
-smarter-types defines them once. Both the platform and the SDK depend on it.
+Both the platform and the SDK depend on smarter-types.
 
 Defined once
 ------------
@@ -22,8 +21,8 @@ package.
 Imports don't change
 --------------------
 
-The platform and the SDK re-export these classes from the modules that
-defined them before, so code that imports them from there keeps working:
+The platform and the SDK re-export these classes from their public modules,
+so they can be imported from those modules or directly from smarter-types:
 
 .. code-block:: python
 

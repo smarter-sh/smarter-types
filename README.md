@@ -31,11 +31,10 @@ manifests.sort(key=lambda m: SAMKinds.apply_rank(m["kind"]))
 
 The platform (a Django application) and the SDK (which runs without Django)
 must agree on which kinds of manifest exist, which verbs the `/api/v1/cli/`
-api has, and what the journal records. When each defined them itself, the
-copies drifted: a kind added to the platform was rejected by the SDK until
-someone copied it there. smarter-types defines them once, and both depend on
-it. Each re-exports the classes from the modules that used to define them, so
-their own imports don't change.
+api has, and what the journal records. smarter-types is the shared source of
+truth for these definitions, and both depend on it. Each re-exports the
+classes from the modules that used to provide them, so their own imports
+don't change.
 
 ## What's in it
 
