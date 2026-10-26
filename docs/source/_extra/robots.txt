@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://docs.smarter-types.smarter.sh/sitemap.xml

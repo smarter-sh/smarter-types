@@ -1,0 +1,331 @@
+---
+#------------------------------------------------------------------------------
+# Release: on every push to main (a release) or alpha or beta (a prerelease).
+# It can also be started by hand from the Actions tab, or with make
+# release-dry-run (CI, then the next version, without releasing) and make
+# release.
+#
+# A push whose commits since the last tag are all docs, ci, build, chore,
+# style, refactor or test runs CI and releases nothing. semantic-release's own
+# commit ends in [skip ci], so it doesn't start another run.
+#
+#   ci                 the whole CI workflow (lint, tests, docs, terraform, build)
+#   release            semantic-release: version, CHANGELOG.md, tag, GitHub release
+#   dist               the sdist and wheel, built from the new tag, and checked
+#   attach             the distributions, attached to the GitHub release
+#   publish-testpypi   TestPyPI, as a rehearsal       (vars.PUBLISH_TO_TESTPYPI)
+#   verify-testpypi    install it back from TestPyPI, and check the version
+#   publish-pypi       PyPI, main only, after the rehearsal passed (vars.PUBLISH_TO_PYPI)
+#   verify-pypi        install it back from PyPI, and check the version
+#   publish-docs       the Sphinx site of the release, to docs.smarter-types.smarter.sh,
+#                      after PyPI has it (vars.PUBLISH_DOCS)
+#
+# Releasing and publishing are one workflow, so that a version can't be tagged
+# on GitHub and never reach PyPI. Uploads use trusted publishing (OIDC): there
+# is no PyPI token. Each index needs this workflow registered as a trusted
+# publisher, for the "testpypi" and "pypi" environments. Uploads skip files
+# that already exist, so a failed run can be run again.
+#
+# Secrets: CODECOV_TOKEN (CI's coverage upload), and PAT, only if main is
+# protected against GITHUB_TOKEN's pushes (semantic-release commits to it).
+#
+# publish-docs signs in to AWS with GitHub's OIDC token, as the role that
+# terraform/docs creates for the "docs" environment: there is no AWS key. Its
+# repository variables are terraform/docs' outputs: DOCS_AWS_ROLE_ARN
+# (publisher_role_arn), DOCS_BUCKET (bucket_name) and DOCS_DISTRIBUTION_ID
+# (distribution_id).
+#------------------------------------------------------------------------------
+name: Release
+
+on:
+  push:
+    branches: [main, alpha, beta]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: run CI and report the next version, without releasing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# one release at a time per branch. A push while a release runs waits for it, and the next run
+# releases everything since the last tag.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  release:
+    name: Semantic release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      published: ${{ steps.semantic.outputs.new_release_published }}
+      version: ${{ steps.semantic.outputs.new_release_version }}
+      tag: ${{ steps.semantic.outputs.new_release_git_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Semantic release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v8
+        with:
+          # inputs.dry_run is empty on a push, which is a real release.
+          dry_run: ${{ inputs.dry_run == true }}
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/exec
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+      - name: Summary
+        run: |
+          {
+            echo "### Release"
+            echo "- Branch: ${{ github.ref_name }}"
+            echo "- Trigger: ${{ github.event_name }}"
+            echo "- Dry run: ${{ inputs.dry_run == true }}"
+            echo "- Last release: ${{ steps.semantic.outputs.last_release_version || 'none' }}"
+            echo "- Next release: ${{ steps.semantic.outputs.new_release_version || 'none' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  dist:
+    name: Build distributions
+    needs: release
+    if: needs.release.outputs.published == 'true' && inputs.dry_run != true
+    runs-on: ubuntu-latest
+    outputs:
+      # the version as Python's packaging writes it, e.g. 0.2.0-alpha.1 becomes 0.2.0a1.
+      python-version: ${{ steps.versions.outputs.python-version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Build and check the distributions
+        run: |
+          pip install build twine packaging
+          python -m build
+          twine check --strict dist/*
+      - name: Check the versions
+        id: versions
+        env:
+          RELEASE: ${{ needs.release.outputs.version }}
+        run: |
+          # semantic-release wrote the release's version into the tagged __version__.py.
+          grep -qx "__version__ = \"$RELEASE\"" src/smarter_types/__version__.py \
+            || { echo "::error::src/smarter_types/__version__.py is not $RELEASE"; exit 1; }
+          PY_VERSION=$(python -c "import sys; from packaging.version import Version; print(Version(sys.argv[1]))" "$RELEASE")
+          # one wheel and one sdist, both of exactly that version.
+          ls "dist/smarter_types-$PY_VERSION-py3-none-any.whl" "dist/smarter_types-$PY_VERSION.tar.gz" \
+            || { echo "::error::dist/ doesn't hold version $PY_VERSION"; ls dist; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
+          echo "python-version=$PY_VERSION" >> "$GITHUB_OUTPUT"
+      # not "dist": the CI job of this same run uploads a "dist" artifact too, built from the
+      # pushed commit with the previous version, and a download by name could get that one.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-dist
+          path: dist/
+          if-no-files-found: error
+
+  attach:
+    name: Attach to the GitHub release
+    needs: [release, dist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-dist
+          path: dist/
+      - name: Check that dist/ holds exactly the release
+        env:
+          VERSION: ${{ needs.dist.outputs.python-version }}
+        run: |
+          ls dist/*-"$VERSION"-py3-none-any.whl dist/*-"$VERSION".tar.gz \
+            || { echo "::error::dist/ doesn't hold version $VERSION"; ls dist; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
+      - name: Upload the distributions to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "${{ github.repository }}"
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: [release, dist]
+    if: vars.PUBLISH_TO_TESTPYPI == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/smarter-types/${{ needs.dist.outputs.python-version }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-dist
+          path: dist/
+      - name: Check that dist/ holds exactly the release
+        env:
+          VERSION: ${{ needs.dist.outputs.python-version }}
+        run: |
+          ls dist/*-"$VERSION"-py3-none-any.whl dist/*-"$VERSION".tar.gz \
+            || { echo "::error::dist/ doesn't hold version $VERSION"; ls dist; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  verify-testpypi:
+    name: Verify the TestPyPI upload
+    needs: [dist, publish-testpypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install from TestPyPI, and import it
+        env:
+          VERSION: ${{ needs.dist.outputs.python-version }}
+        run: |
+          # dependencies from PyPI, and only smarter-types itself from TestPyPI, where anyone
+          # can upload a package named like one of them.
+          pip install "inflection>=0.5,<1" packaging
+          # the index can take a minute to show a new upload.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            pip install --no-cache-dir --no-deps --index-url https://test.pypi.org/simple/ "smarter-types==$VERSION" && break
+            [ "$attempt" = 10 ] && exit 1
+            sleep 30
+          done
+          # the installed package's own __version__ must be the release, compared as PEP 440 versions.
+          python -I -c "import sys, smarter_types; from packaging.version import Version; installed = Version(smarter_types.__version__); assert installed == Version(sys.argv[1]), installed; print('smarter-types', installed)" "$VERSION"
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [release, dist, publish-testpypi, verify-testpypi]
+    # main only; and the TestPyPI rehearsal, when it is enabled, must have passed.
+    if: >-
+      !cancelled()
+      && needs.dist.result == 'success'
+      && contains(fromJSON('["success", "skipped"]'), needs.publish-testpypi.result)
+      && contains(fromJSON('["success", "skipped"]'), needs.verify-testpypi.result)
+      && github.ref_name == 'main'
+      && vars.PUBLISH_TO_PYPI == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/smarter-types/${{ needs.dist.outputs.python-version }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-dist
+          path: dist/
+      - name: Check that dist/ holds exactly the release
+        env:
+          VERSION: ${{ needs.dist.outputs.python-version }}
+        run: |
+          ls dist/*-"$VERSION"-py3-none-any.whl dist/*-"$VERSION".tar.gz \
+            || { echo "::error::dist/ doesn't hold version $VERSION"; ls dist; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  verify-pypi:
+    name: Verify the PyPI upload
+    needs: [dist, publish-pypi]
+    if: ${{ !cancelled() && needs.publish-pypi.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install from PyPI, and import it
+        env:
+          VERSION: ${{ needs.dist.outputs.python-version }}
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            pip install --no-cache-dir "smarter-types==$VERSION" && break
+            [ "$attempt" = 10 ] && exit 1
+            sleep 30
+          done
+          pip install packaging
+          # the installed package's own __version__ must be the release, compared as PEP 440 versions.
+          python -I -c "import sys, smarter_types; from packaging.version import Version; installed = Version(smarter_types.__version__); assert installed == Version(sys.argv[1]), installed; print('smarter-types', installed)" "$VERSION"
+
+  publish-docs:
+    name: Publish the docs site
+    needs: [release, verify-pypi]
+    # the site documents what PyPI serves, so it is published only once PyPI has the release.
+    if: >-
+      !cancelled()
+      && needs.verify-pypi.result == 'success'
+      && vars.PUBLISH_DOCS == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: docs
+      url: https://docs.smarter-types.smarter.sh/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Build the Sphinx site, warnings as errors
+        run: |
+          pip install -e ".[docs]"
+          sphinx-build -W --keep-going -b html -d docs/build/doctrees docs/source docs/build/html
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.DOCS_AWS_ROLE_ARN }}
+          # the bucket's region (terraform/docs). CloudFront is global.
+          aws-region: us-east-2
+      - name: Upload the site, and invalidate CloudFront
+        env:
+          BUCKET: ${{ vars.DOCS_BUCKET }}
+          DISTRIBUTION: ${{ vars.DOCS_DISTRIBUTION_ID }}
+        run: |
+          # the same commands as make sphinx-publish.
+          aws s3 sync docs/build/html "s3://$BUCKET/" --delete --exclude ".doctrees/*" --exclude ".buildinfo"
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" --paths "/*" --query Invalidation.Id --output text
+      - name: Check the published site
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          # CloudFront serves the new pages once the invalidation completes, usually within a minute.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            curl -fsS https://docs.smarter-types.smarter.sh/ -o index.html && grep -q "$VERSION" index.html && break
+            [ "$attempt" = 10 ] && { echo "::error::the site doesn't show version $VERSION"; exit 1; }
+            sleep 30
+          done

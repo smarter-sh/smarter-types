@@ -1,0 +1,12 @@
+# -----------------------------------------------------------------------------
+# written by: Lawrence McDaniel
+#             https://lawrencemcdaniel.com
+#
+# usage:      additional global version constraints.
+#             -r constraints.in
+#
+#             The bounds of the package's own dependencies are the ones that
+#             pyproject.toml publishes. Keep the two the same.
+# -----------------------------------------------------------------------------
+inflection>=0.5,<1                  # SAMKinds.plural(); the bounds that smarter-types supports (pyproject.toml)
+pip-tools>=7.6.1                    # 7.5.x is incompatible with pip 26.2+ (stdlib_pkgs was removed)

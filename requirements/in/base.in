@@ -1,0 +1,13 @@
+# -----------------------------------------------------------------------------
+# written by: Lawrence McDaniel
+#             https://lawrencemcdaniel.com
+#
+# usage:      The package's runtime requirements: the only dependencies of
+#             smarter-types, as pyproject.toml publishes them.
+#
+#             pip-compile --upgrade requirements/in/base.in -o requirements/base.txt
+# -----------------------------------------------------------------------------
+
+-r constraints.in
+
+inflection                          # pluralizes a kind's final CamelCase token (SAMKinds.plural)

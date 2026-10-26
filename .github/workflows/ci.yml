@@ -1,0 +1,125 @@
+---
+#------------------------------------------------------------------------------
+# Continuous integration: on every pull request, and as the first job of the
+# Release workflow, which runs on every push to main, alpha and beta,
+#
+# - lint: run the pre-commit hooks on every file.
+# - test: check the type annotations with mypy, and run the tests with
+#   coverage, on every supported Python version. Each job uploads its coverage
+#   to Codecov, which merges them.
+# - docs: build the Sphinx site, with warnings as errors.
+# - terraform: check the docs site's Terraform (fmt and validate, no AWS access).
+# - build: build the sdist and wheel, check them with twine, and keep them as
+#   the workflow's "dist" artifact.
+#
+# Codecov needs the repository secret CODECOV_TOKEN.
+#------------------------------------------------------------------------------
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  # release.yml runs the whole of CI before it releases anything.
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+# a newer push to the same branch or pull request makes an older run obsolete. In a run
+# called by release.yml, github.workflow is "Release", so a push can't cancel a release's CI.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Run the pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: pip install -e ".[test,typing]"
+      - name: Type check
+        run: mypy
+      - name: Test
+        run: |
+          coverage run -m pytest
+          coverage report
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.xml
+          flags: py${{ matrix.python }}
+          name: py${{ matrix.python }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install
+        run: pip install -e ".[docs]"
+      - name: Build the Sphinx site, warnings as errors
+        run: sphinx-build -W --keep-going -b html -d docs/build/doctrees docs/source docs/build/html
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - name: Check the docs site's Terraform
+        working-directory: terraform/docs
+        run: |
+          terraform fmt -check -diff
+          terraform init -backend=false -input=false
+          terraform validate
+
+  build:
+    name: Build
+    needs: [lint, test, docs, terraform]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Build and check the distributions
+        run: |
+          pip install build twine
+          python -m build
+          twine check --strict dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error

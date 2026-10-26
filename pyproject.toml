@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "smarter-types"
+dynamic = ["version"]
+description = "The type definitions that the Smarter platform and its Python SDK share: SAM kinds, their apply order, and the Smarter Journal's enumerations."
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
+requires-python = ">=3.10"
+authors = [{ name = "The Smarter Project" }]
+maintainers = [{ name = "Lawrence McDaniel", email = "lpm0073@gmail.com" }]
+keywords = ["smarter", "sam", "manifests", "enum", "types"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = ["inflection>=0.5,<1"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "coverage[toml]>=7"]
+typing = ["mypy>=1.10"]
+docs = ["sphinx>=8", "sphinx-rtd-theme>=3", "sphinx-copybutton>=0.5", "sphinx-notfound-page>=1", "sphinx-sitemap>=2.6"]
+
+[project.urls]
+Homepage = "https://github.com/smarter-sh/smarter-types"
+Documentation = "https://docs.smarter-types.smarter.sh/"
+Source = "https://github.com/smarter-sh/smarter-types"
+Issues = "https://github.com/smarter-sh/smarter-types/issues"
+Changelog = "https://github.com/smarter-sh/smarter-types/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/smarter_types/__version__.py"
+
+[tool.hatch.build.targets.sdist]
+# anchored with a leading /: an unanchored "README.md" also matches skills/README.md, through .claude/skills.
+include = ["/src/smarter_types", "/tests", "/README.md", "/LICENSE.txt", "/CHANGELOG.md"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/smarter_types"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["smarter_types"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 95
+
+[tool.mypy]
+files = ["src/smarter_types"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+
+# pylint isn't one of the lint hooks, but editors run it. Match black and flake8.
+[tool.pylint.format]
+max-line-length = 120

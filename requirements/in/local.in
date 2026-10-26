@@ -1,0 +1,49 @@
+# -----------------------------------------------------------------------------
+# written by: Lawrence McDaniel
+#             https://lawrencemcdaniel.com
+#
+# usage: developer support packages for testing, type checking, formatting,
+#        security, quality, documentation, build & packaging
+#
+#       pip-compile --upgrade requirements/in/local.in -o requirements/local.txt
+#
+#       make init installs local.txt into ./venv, then the package itself,
+#       editable (pip install -e . --no-deps).
+# -----------------------------------------------------------------------------
+
+-r constraints.in
+-r base.in
+
+pip-tools                           # pip-compile (make python-requirements)
+
+# tests
+# ------------
+pytest                              # test runner
+coverage[toml]                      # test coverage, configured in pyproject.toml
+
+# type checking
+# ------------
+mypy                                # static type checker (make typecheck)
+
+# Code linters, formatters, and security scanners
+# ------------
+bandit                              # security linter
+black                               # code formatter
+codespell                           # typo checker
+flake8                              # code linter
+isort                               # import sorter
+pre-commit                          # git hook manager
+pydocstringformatter                # docstring formatter
+
+# Documentation
+# ------------
+sphinx                              # the documentation builder (make sphinx-build)
+sphinx-rtd-theme                    # Sphinx theme for Readthedocs
+sphinx-copybutton                   # Sphinx code copy button extension
+sphinx-notfound-page                # the site's 404.html, which CloudFront serves for missing pages
+sphinx-sitemap                      # sitemap.xml, for search engines
+
+# build & packaging
+# ------------
+build                               # builds the sdist and wheel (make build)
+twine                               # checks the distributions (make build)

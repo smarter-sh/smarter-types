@@ -1,0 +1,36 @@
+# virtual environments
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Sphinx
+docs/build/
+
+# Terraform: local state, plans and providers. .terraform.lock.hcl is committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+
+# tools
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# editors and operating systems. .vscode/ is committed: it points VS Code at venv/.
+.DS_Store
+.idea/
+
+# node, for the commitlint hook
+node_modules/
