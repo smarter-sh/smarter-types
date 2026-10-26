@@ -62,6 +62,31 @@ existed, each defined its own copy, and the copies drifted.
 11. **Decisions are recorded as ADRs** in `docs/source/adr/`. Read ADR-001
     (scope) before adding anything new to the package.
 
+## When the user reports that something didn't happen
+
+If the user says that something didn't happen, e.g. "it did not create a
+release", "PyPI still has the old version" or "the docs didn't change", that
+is a problem to fix, not a claim to debate. Don't answer with evidence that it
+did happen somewhere else, e.g. a prerelease on `alpha` or TestPyPI when they
+mean `main` and PyPI. Find out what is missing from their point of view, why,
+and fix it, or hand them the one command or click that fixes it.
+
+## Pattern-first workflow
+
+The package is small and consistent, and almost every change has a precedent.
+
+1. Identify what kind of change it is: a kind, a cli command, a response key,
+   a helper on `SmarterEnumAbstract`, a test, a doc page.
+2. Find the existing members or functions of the same kind, and the tests and
+   docs that go with them.
+3. Copy their structure, naming, docstrings and logging. Don't introduce a new
+   pattern when one exists.
+4. Make the change, then its tests, docstrings and docs.
+5. Run the hooks and the tests, and fix what they find.
+
+When existing code disagrees with these skills, the code that is newest and
+consistent with most of the package wins. Say so in your summary.
+
 ## What belongs here
 
 - Enumerations and constants that **both** the platform and the SDK read.
@@ -84,7 +109,18 @@ that defined them before, so that their own imports don't change:
 A release reaches them only when their minimum version of `smarter-types` is
 raised (`smarter-types-release`). Read their code in `../smarter` and
 `../smarter-python` (read only, unless the user asks you to change them) to see
-how a change here lands there.
+how a change here lands there:
+
+- **Read the local checkouts**, not GitHub: grep them like any local code.
+  First check that they are current:
+  `../smarter/skills/smarter-project-repositories/scripts/repos-status.sh smarter smarter-python`
+  (read only: it shows each checkout's branch, uncommitted changes, and
+  whether it matches its remote). A checkout that is behind can mislead you.
+  Say so, and give the user the `git -C ../<repository> pull` to run. Don't
+  run it yourself: rule 1 applies to every repository.
+- **Each has its own `CLAUDE.md` and skills.** Read them before changing
+  anything there, and follow their rules, not this repository's: e.g. the
+  platform's tests run in its Docker containers, not on the host.
 
 ## Adding a SAM kind, end to end
 
@@ -118,8 +154,17 @@ logger = logging.getLogger(__name__)  # standard library
 logger.warning("%s.from_url() could not extract manifest kind from URL: %s", cls.__name__, url)
 ```
 
-- Messages start with `ClassName.method()`; %-style arguments, never f-strings.
-- The package logs little: only a value it can't interpret.
+- Messages start with `ClassName.method()` (`cls.__name__` or
+  `type(self).__name__`, then the unformatted method name with `()`), so that
+  a line can be traced to its code. Keep the name right when you rename the
+  method.
+- %-style arguments, never f-strings: a message that isn't emitted is never
+  formatted, and aggregators can group messages by their template.
+- The package logs little: only a value it can't interpret, at `warning`.
+  Pick a level deliberately; nothing here is an `error` the caller can't
+  handle from the return value.
+- Never log a secret: an api key, a token, an `Authorization` header. Nothing
+  here handles one today; a new message that could include one leaves it out.
 
 ## Which skill to load
 
@@ -135,8 +180,9 @@ logger.warning("%s.from_url() could not extract manifest kind from URL: %s", cls
 
 ## Definition of done
 
-- The change keeps rules 3 to 6.
-- Tests cover it; `make test` and `make coverage` pass.
+- The change follows an existing pattern, and keeps rules 3 to 6.
+- Tests cover it, and you ran `make test` and `make coverage` yourself. Report
+  failures honestly, including pre-existing ones.
 - `make typecheck` and the pre-commit hooks pass.
 - Public objects have reST docstrings, and the README and guide describe any
   change a user can see.

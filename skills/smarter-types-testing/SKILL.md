@@ -20,7 +20,10 @@ make typecheck                     # mypy
 venv/bin/python -m pytest tests/test_kinds.py -k apply   # one module or test
 ```
 
-- Run the tests yourself, after every change, and report the counts.
+- Run the tests yourself, after every change, and report the counts. Never
+  ask the user to re-run them.
+- Read the pass and fail counts, not only the coverage table: a coverage
+  report alone is not a result.
 - `pyproject.toml` sets `pythonpath = ["src", "."]`, so the tests import the
   source tree even without `pip install -e .`.
 
@@ -44,9 +47,10 @@ python3.10 -m venv /tmp/venv-py310
 - Plain pytest functions, parametrized where a table reads better, as the
   existing modules do.
   No Django, no database, no network.
-- Each test has a one-line docstring stating the behavior it proves.
+- Test names say what's being proven (`test_dependencies_come_first`), and
+  each test has a one-line docstring stating the behavior it proves.
 - Test through the public api (`from smarter_types import ...`), as the
-  platform and the SDK use it.
+  platform and the SDK use it. Don't call private helpers just to touch lines.
 
 ## What the tests protect
 
@@ -88,5 +92,9 @@ At least 95%, with branch coverage (`pyproject.toml`). CI uploads every job's
 
 ## Reporting
 
-Report the pass, fail and skip counts, the coverage, which Python versions you
-ran, and anything you didn't run.
+Report the pass, fail and skip counts honestly, the coverage, which Python
+versions you ran, and anything you didn't run. Name pre-existing failures and
+separate them from anything your change caused. Confirm "pre-existing" by
+running the test on unchanged code, e.g. a copy of the repository in your
+scratchpad with the changed files replaced by `git show HEAD:<path>`: don't
+assume it. Never `git stash` or `git checkout` to do so.

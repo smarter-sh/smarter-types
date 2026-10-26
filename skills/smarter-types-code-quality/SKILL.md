@@ -18,7 +18,7 @@ anyway.
 | -------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | black                | `pyproject.toml`, line length 120   | Formatter. Let it reformat.                                                                                                       |
 | isort                | `pyproject.toml`, `profile = black` | Import order.                                                                                                                     |
-| autoflake            | `--remove-all-unused-imports`       | Sometimes leaves an unused name in a multi-name import: flake8 then F401                                                          |
+| autoflake            | `--remove-all-unused-imports`       | **No-op**: `args` drops the hook's default `--in-place`, so it only prints a diff. flake8's F401 finds unused imports.            |
 | flake8               | `.flake8`, line length 120          | **Every** check runs, unlike Smarter's `.flake8`, which selects only C101.                                                        |
 | bandit               | `-ll`                               | Medium or high severity findings fail.                                                                                            |
 | pyupgrade            | `--py310-plus`                      | Rewrites annotations to `X \| None`. See `smarter-types-typing`.                                                                  |
@@ -48,14 +48,17 @@ make pre-commit-init         # reinstall the hooks and update their versions (pr
   and pre-commit checks nothing.
 - Hooks that modify files fail the first run, then pass. Run them until they
   pass, and read the diff of what they changed.
+- `make pre-commit-run` is slower, and touches files you didn't change. Use
+  it before a pull request, and `--files` while you work.
 - **pydocstringformatter capitalizes a docstring's first word**, e.g.
   `smarter_types.kinds` becomes `Smarter_types.kinds`. Start module docstrings
   with a sentence (`smarter-types-docstrings`).
 - **The prettier hook can leave a `node_modules/.cache/` folder** in the
   repository root. It is git-ignored; `make clean` removes it. Don't pass it to
   the hooks.
-- `make pre-commit-init` runs `pre-commit autoupdate`, which edits
-  `.pre-commit-config.yaml`. That change is a commit of its own (`build:`).
+- `make pre-commit-init`, and so `make init`, runs `pre-commit autoupdate`,
+  which edits `.pre-commit-config.yaml`. That change is a commit of its own
+  (`build:`): don't fold it into an unrelated one.
 
 ## Principles
 
@@ -63,4 +66,4 @@ make pre-commit-init         # reinstall the hooks and update their versions (pr
   `smarter-types-development`.
 - Fix the cause of a finding. Suppress one only with a narrow, commented
   directive that says why, e.g. `# nosec B105: test settings only`.
-- Don't reformat code you didn't otherwise change.
+- Don't reformat code you didn't otherwise change. It buries the real diff.

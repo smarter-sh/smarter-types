@@ -33,6 +33,18 @@ package depends on nothing that defines them.
 Almost never here: these are enumerations of strings. If you reach for `Any`,
 list the types instead. Avoid `Optional[Any]`: it says no more than `Any`.
 
+- **A finite set of types** is a union (`str | bytes`). If callers must then
+  narrow it, that's the truth about the function; consider splitting it into
+  two functions, each with one return type.
+- **A return type that depends on an argument's type** takes `@overload`, or a
+  `TypeVar` for a function that returns the object it was given.
+- **A value that is only stored, compared or passed on** is `object`, not
+  `Any`: it accepts anything and keeps the checker on.
+- **A circular import** is solved with `if TYPE_CHECKING:`, never with `Any`.
+  With `from __future__ import annotations`, the annotation needs no quotes.
+- **The docstring's `:type:` and `:rtype:`** change with the annotation
+  (`smarter-types-docstrings`).
+
 ## Checking your work
 
 ```console

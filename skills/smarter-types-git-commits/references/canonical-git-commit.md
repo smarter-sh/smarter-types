@@ -31,3 +31,11 @@ git commit --author="Lawrence McDaniel <lpm0073@gmail.com>" \
   -m "Status: 64 tests pass with 100% coverage on Python 3.10 and 3.14, mypy and the pre-commit hooks pass, and the docs build without warnings. Not yet done: raising the minimum version of smarter-types in smarter and smarter-python." \
   -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+Notes on the format:
+
+- A bullet list goes in a single `-m` with real newlines between bullets. A
+  paragraph gets its own `-m`.
+- Inner double quotes are escaped (`\"data\"`). Backticks are avoided
+  altogether.
+- The header is within 72 characters, measured with `wc -c`.

@@ -36,6 +36,11 @@ def apply_rank(cls, kind: str | SAMKinds) -> int:
 - `:raises X:` for each exception a caller should handle, e.g.
   `:raises SmarterTypesValueError: If the string is not a SAM kind.`
 - Never Google style (`Args:`, `Attributes:`): Sphinx renders it as prose.
+- **`:type:` and `:rtype:` repeat the annotation, spelled the same way**
+  (`str | None`, not `Optional[str]`). The platform omits them because it
+  runs `sphinx_autodoc_typehints`; this package doesn't, so the fields are
+  where the reference gets its types. Change both in the same edit.
+- Indent continuation lines by four spaces.
 
 ## Enum members
 
@@ -58,20 +63,40 @@ docstring to check the tuple.
 
 - Opening `"""` on its own line, then a **one-line summary ending with a
   period**, a blank line, then the body. A two-line summary is mangled: the
-  formatter puts a period at the end of the first line.
+  formatter puts a period at the end of the first line. Put the whole first
+  sentence on the summary line, however long.
+- A body paragraph starts with a capital letter. One that starts lower case
+  usually means a summary was split.
+- One blank line between paragraphs, and between the body and the fields.
 - **pydocstringformatter capitalizes the first word.** A module docstring that
   starts with `smarter_types.kinds` becomes `Smarter_types.kinds`. Start module
   docstrings with a sentence ("Every kind of Smarter Application Manifest.").
   The same goes for a summary that starts with a name: put it in double
   backticks, or rephrase.
 
+## Content
+
+- **Module docstrings** say what the module holds, and who reads it: the
+  platform, the SDK, or both.
+- **Class docstrings** say what the enumeration represents, and where its
+  values end up (manifests, journal entries, urls, cli commands).
+- **Methods** cover purpose, parameters, return value and exceptions. Nothing
+  here has side effects; a method that gains one says so.
+- Say why, not only what, when the reason isn't obvious, e.g. why a kind comes
+  before another in the apply order.
+- Be accurate. A docstring that describes old behavior is worse than none.
+  Change it in the same edit as the behavior.
+
 ## reST inside docstrings
 
 - Double backticks for literals (values, file names), and Sphinx roles for
   cross-references, e.g. `:class:`~smarter_types.kinds.SAMKinds``,
-`:meth:`apply_order``, `:mod:`smarter_types.journal``.
+`:meth:`apply_order``, `:mod:`smarter_types.journal``. The `~` shows only
+  the last component.
 - Don't reference the platform's or the SDK's modules with a role: this
   package's docs can't resolve them. Name them in double backticks.
+- Example code: `.. code-block:: python` (or `console`), a blank line, then
+  indented content.
 - Lists and code blocks need a blank line before them.
 
 ## Test docstrings

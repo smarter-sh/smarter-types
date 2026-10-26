@@ -118,6 +118,35 @@ against `GITHUB_TOKEN`'s pushes. Variables: `PUBLISH_TO_TESTPYPI` and
 public repository must not contain an account or distribution id. The `docs`
 environment allows only `main`, as `pypi` does.
 
+## When a release didn't happen
+
+When the user says that a release didn't happen, they mean `main`, PyPI and
+the docs site, unless they say otherwise. A prerelease on `alpha` or TestPyPI
+is not an answer. Work down this list, stop at the first step that explains
+it, and fix it or hand the user the one command or click that does:
+
+1. **Did a Release run start?** `gh run list --workflow release.yml --branch main --limit 5`.
+   A push to `alpha` or `beta` makes a prerelease, which stops at TestPyPI.
+2. **Did CI pass?** `gh run view <id> --log-failed`. Nothing is released
+   unless it does.
+3. **Was anything releasable?**
+   `git log --oneline "$(git describe --tags --abbrev=0 origin/main)"..origin/main`.
+   Only `fix`, `perf`, `feat` and a `BREAKING CHANGE:` footer release;
+   `docs`, `ci`, `build` and `chore` don't. The fix is a commit of the right
+   type, never a hand-made tag or version. `origin/main` is only as fresh
+   as the last fetch: compare it with `gh release list --limit 3`.
+4. **Did it publish?** `gh variable list`: `publish-pypi` is skipped unless
+   `PUBLISH_TO_PYPI` is `"true"`, and waits for `verify-testpypi` when the
+   rehearsal is on. A failed upload can be re-run (`make release`): uploads
+   `skip-existing`.
+5. **Is the docs site behind?** `publish-docs` runs only after `verify-pypi`,
+   and only when `PUBLISH_DOCS` is `"true"`.
+6. **Is it on PyPI, but not in the platform or the SDK?** A release reaches
+   them only when their minimum version is raised: see below.
+
+Changing a repository variable or re-running a release is the user's call:
+give them the command rather than running it.
+
 ## Dependencies and requirements
 
 Laid out as Smarter's (`../smarter/smarter/requirements/`), see ADR-013:
