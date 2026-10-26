@@ -212,15 +212,18 @@ jobs:
         env:
           VERSION: ${{ needs.dist.outputs.python-version }}
         run: |
-          # dependencies from PyPI, and only smarter-types itself from TestPyPI, where anyone
-          # can upload a package named like one of them.
-          pip install "inflection>=0.5,<1" packaging
-          # the index can take a minute to show a new upload.
+          # only smarter-types itself from TestPyPI, where anyone can upload a package named like one
+          # of its dependencies. The index can take a minute to show a new upload.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             pip install --no-cache-dir --no-deps --index-url https://test.pypi.org/simple/ "smarter-types==$VERSION" && break
             [ "$attempt" = 10 ] && exit 1
             sleep 30
           done
+          # then its dependencies from PyPI, read from the uploaded package's own metadata, so that
+          # they can't drift from pyproject.toml (extras are left out).
+          python -I -c "from importlib.metadata import requires; print('\n'.join(r for r in requires('smarter-types') or [] if 'extra ==' not in r))" > requirements.txt
+          cat requirements.txt
+          pip install -r requirements.txt packaging
           # the installed package's own __version__ must be the release, compared as PEP 440 versions.
           python -I -c "import sys, smarter_types; from packaging.version import Version; installed = Version(smarter_types.__version__); assert installed == Version(sys.argv[1]), installed; print('smarter-types', installed)" "$VERSION"
 

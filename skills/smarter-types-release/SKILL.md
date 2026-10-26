@@ -84,7 +84,11 @@ gh run watch
    the variable `PUBLISH_TO_TESTPYPI` is `"true"`. The verify job installs the
    upload back, its dependencies from PyPI and only smarter-types from TestPyPI
    (anyone can upload a look-alike of a dependency there), and checks the
-   installed `__version__`.
+   installed `__version__`. It reads
+   those dependencies from the uploaded package's own metadata
+   (`importlib.metadata.requires`), so there is no list to keep in step with
+   `pyproject.toml`: a hand-written one once missed a dependency, and the job
+   failed with `ModuleNotFoundError`.
 6. `publish-pypi`, then `verify-pypi`: PyPI, **from `main` only**, when
    `PUBLISH_TO_PYPI` is `"true"`, and only if the rehearsal passed or is off.
    Prereleases from `alpha` and `beta` stop at TestPyPI.
