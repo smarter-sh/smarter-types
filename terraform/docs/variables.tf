@@ -2,11 +2,6 @@
 # Inputs of the documentation site's stack.
 #------------------------------------------------------------------------------
 
-variable "aws_account_id" {
-  description = "The AWS account to operate on. make passes it as TF_VAR_aws_account_id, from the caller's credentials."
-  type        = string
-}
-
 variable "aws_region" {
   description = "The region of the S3 bucket that holds the built site."
   type        = string

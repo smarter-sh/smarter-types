@@ -142,10 +142,10 @@ terraform-init:
 
 # writes the plan to terraform/docs/tfplan, which terraform-apply applies exactly.
 terraform-plan:
-	TF_VAR_aws_account_id=$(AWS_ACCOUNT_ID) $(TF) plan -out=tfplan
+	$(TF) plan -out=tfplan
 
 terraform-apply:
-	TF_VAR_aws_account_id=$(AWS_ACCOUNT_ID) $(TF) apply tfplan
+	$(TF) apply tfplan
 	rm -f terraform/docs/tfplan
 
 # ---------------------------------------------------------

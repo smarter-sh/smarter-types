@@ -8,12 +8,22 @@
 # repository's settings, as the "pypi" environment is.
 #------------------------------------------------------------------------------
 
-# GitHub's OIDC provider is one per AWS account, and cache-results' docs stack
-# (github.com/smarter-sh/cache-results, terraform/docs) already creates it. This
-# stack only reads it, and trusts it with a role of its own: a second resource
-# for the same url would fail with EntityAlreadyExists.
+# GitHub's OIDC provider is one per AWS account, shared by every repository's
+# workflows, each with a role of its own. A per-repository stack must only read
+# it: creating it fails in an account that already has one, and destroying the
+# stack would break every other repository's workflows.
 data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
+}
+
+# This stack created the provider before it was shared. Forget it without
+# destroying it. Remove this block once every copy of the state has applied it.
+removed {
+  from = aws_iam_openid_connect_provider.github_actions
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 data "aws_iam_policy_document" "docs_publisher_trust" {
