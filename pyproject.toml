@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "smarter-types"
 dynamic = ["version"]
-description = "The type definitions that the Smarter platform and its Python SDK share: SAM kinds, their apply order, and the Smarter Journal's enumerations."
+description = "The type definitions that the Smarter platform and its Python SDK share: SAM kinds, their apply order, the Smarter Journal's enumerations, and the rules of SAM annotations."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE.txt"]
 requires-python = ">=3.10"
 authors = [{ name = "The Smarter Project" }]
 maintainers = [{ name = "Lawrence McDaniel", email = "lpm0073@gmail.com" }]
-keywords = ["smarter", "sam", "manifests", "enum", "types"]
+keywords = ["smarter", "sam", "manifests", "enum", "types", "annotations"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",

@@ -7,6 +7,7 @@ The reference is generated from the package's docstrings.
    :maxdepth: 1
 
    reference/kinds
+   reference/annotations
    reference/journal
    reference/enum
    reference/exceptions

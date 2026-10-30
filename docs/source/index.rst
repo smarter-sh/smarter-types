@@ -30,7 +30,8 @@ smarter-types |project_version|
 `Smarter <https://github.com/smarter-sh/smarter>`__ platform and its
 `Python SDK <https://github.com/smarter-sh/smarter-python>`__ use together.
 It provides shared definitions for Smarter Application Manifest (SAM) kinds,
-their apply order, and the Smarter Journal's things and cli commands.
+their apply order, the Smarter Journal's things and cli commands, and the
+rules of SAM annotations.
 
 These definitions give the platform and SDK a consistent contract while
 keeping the package usable in plain Python, without Django.
@@ -54,6 +55,9 @@ Features
   that every resource is applied after the resources it names.
 - **The Smarter Journal's enumerations**: the things it records, whose values
   come from SAMKinds, and the verbs of the ``/api/v1/cli/`` api.
+- **SAM annotations**: the rules of a valid annotation key and value, the
+  legacy list form, the size limit, and annotation selectors
+  (:doc:`guide/annotations`).
 - **Plain Python**: no Django, no Pydantic. Its only dependency is
   ``inflection``. Typed (``py.typed``).
 
@@ -71,6 +75,7 @@ Features
    guide/why
    guide/kinds
    guide/journal
+   guide/annotations
 
 .. toctree::
    :maxdepth: 2
