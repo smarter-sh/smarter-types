@@ -1,9 +1,9 @@
 # smarter-types
 
-[![A project of The Smarter Project](https://img.shields.io/badge/a%20project%20of-The%20Smarter%20Project-2F6FEB)](https://smarter.sh)
+[![A project of The Smarter Project](https://img.shields.io/badge/a%20project%20of-The%20Smarter%20Project-2F6FEB)](https://pypi.org/org/smarter-sh/)
 [![Release](https://github.com/smarter-sh/smarter-types/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/smarter-sh/smarter-types/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/smarter-sh/smarter-types/graph/badge.svg)](https://codecov.io/gh/smarter-sh/smarter-types)
-[![PyPI](https://img.shields.io/pypi/v/smarter-types?logo=pypi&logoColor=white)](https://pypi.org/project/smarter-types/)
+[![PyPI](https://img.shields.io/pypi/v/smarter-types?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/smarter-types/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE.txt)
 [![Docs](https://img.shields.io/badge/docs-docs.smarter--types.smarter.sh-blue?logo=readthedocs)](https://docs.smarter-types.smarter.sh/)

@@ -9,3 +9,4 @@ the alternatives considered, and its consequences.
 
    adr/000-intro
    adr/001-scope
+   adr/002-shared-validation-rules
