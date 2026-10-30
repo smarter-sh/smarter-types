@@ -20,10 +20,15 @@ variable "hosted_zone_name" {
   default     = "smarter.sh"
 }
 
-variable "github_repository" {
-  description = "The GitHub repository whose Release workflow publishes the site, as owner/name."
+# The repository uses GitHub's immutable OIDC subject, which names the owner and the
+# repository by name and numeric id, so that a deleted and re-created repository of the
+# same name can't assume the role. Its prefix is the sub_claim_prefix that
+#   gh api repos/smarter-sh/smarter-types/actions/oidc/customization/sub
+# returns. The ids are GitHub's public ids, not secrets.
+variable "github_oidc_subject_prefix" {
+  description = "The prefix of the OIDC subject of the GitHub repository whose Release workflow publishes the site: repo:<owner>@<owner id>/<name>@<repository id>."
   type        = string
-  default     = "smarter-sh/smarter-types"
+  default     = "repo:smarter-sh@170533864/smarter-types@1434400086"
 }
 
 variable "github_environment" {
