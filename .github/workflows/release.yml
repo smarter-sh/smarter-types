@@ -26,8 +26,9 @@
 # publisher, for the "testpypi" and "pypi" environments. Uploads skip files
 # that already exist, so a failed run can be run again.
 #
-# Secrets: CODECOV_TOKEN (CI's coverage upload), and PAT, only if main is
-# protected against GITHUB_TOKEN's pushes (semantic-release commits to it).
+# Secrets: CODECOV_TOKEN (CI's coverage upload), and PAT, which semantic-release
+# and the attach job use to push to main and write the GitHub release, so that
+# GITHUB_TOKEN stays read-only.
 #
 # publish-docs signs in to AWS with GitHub's OIDC token, as the role that
 # terraform/docs creates for the "docs" environment: there is no AWS key. Its
@@ -67,22 +68,19 @@ jobs:
     name: Semantic release
     needs: ci
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+    timeout-minutes: 5
     outputs:
       published: ${{ steps.semantic.outputs.new_release_published }}
       version: ${{ steps.semantic.outputs.new_release_version }}
       tag: ${{ steps.semantic.outputs.new_release_git_tag }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Semantic release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v8
+        uses: cycjimmy/semantic-release-action@ad51787758d9654d5a75150a89a6fa9b3ccef95e # v8.1.4
         with:
           # inputs.dry_run is empty on a push, which is a real release.
           dry_run: ${{ inputs.dry_run == true }}
@@ -91,7 +89,8 @@ jobs:
             @semantic-release/exec
             @semantic-release/git
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          # the PAT pushes the release commit and tag, and writes the GitHub release.
+          GITHUB_TOKEN: ${{ secrets.PAT }}
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
           GIT_COMMITTER_NAME: github-actions[bot]
@@ -112,14 +111,15 @@ jobs:
     needs: release
     if: needs.release.outputs.published == 'true' && inputs.dry_run != true
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       # the version as Python's packaging writes it, e.g. 0.2.0-alpha.1 becomes 0.2.0a1.
       python-version: ${{ steps.versions.outputs.python-version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release.outputs.tag }}
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       - name: Build and check the distributions
@@ -143,7 +143,7 @@ jobs:
           echo "python-version=$PY_VERSION" >> "$GITHUB_OUTPUT"
       # not "dist": the CI job of this same run uploads a "dist" artifact too, built from the
       # pushed commit with the previous version, and a download by name could get that one.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-dist
           path: dist/
@@ -153,10 +153,9 @@ jobs:
     name: Attach to the GitHub release
     needs: [release, dist]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 5
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-dist
           path: dist/
@@ -169,7 +168,7 @@ jobs:
           [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
       - name: Upload the distributions to the release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
           TAG: ${{ needs.release.outputs.tag }}
         run: gh release upload "$TAG" dist/* --clobber --repo "${{ github.repository }}"
 
@@ -178,13 +177,14 @@ jobs:
     needs: [release, dist]
     if: vars.PUBLISH_TO_TESTPYPI == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     environment:
       name: testpypi
       url: https://test.pypi.org/project/smarter-types/${{ needs.dist.outputs.python-version }}/
     permissions:
-      id-token: write
+      id-token: write # trusted publishing (OIDC)
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-dist
           path: dist/
@@ -195,7 +195,7 @@ jobs:
           ls dist/*-"$VERSION"-py3-none-any.whl dist/*-"$VERSION".tar.gz \
             || { echo "::error::dist/ doesn't hold version $VERSION"; ls dist; exit 1; }
           [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
@@ -204,8 +204,9 @@ jobs:
     name: Verify the TestPyPI upload
     needs: [dist, publish-testpypi]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       - name: Install from TestPyPI, and import it
@@ -239,13 +240,14 @@ jobs:
       && github.ref_name == 'main'
       && vars.PUBLISH_TO_PYPI == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     environment:
       name: pypi
       url: https://pypi.org/project/smarter-types/${{ needs.dist.outputs.python-version }}/
     permissions:
-      id-token: write
+      id-token: write # trusted publishing (OIDC)
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-dist
           path: dist/
@@ -256,7 +258,7 @@ jobs:
           ls dist/*-"$VERSION"-py3-none-any.whl dist/*-"$VERSION".tar.gz \
             || { echo "::error::dist/ doesn't hold version $VERSION"; ls dist; exit 1; }
           [ "$(find dist -type f | wc -l)" -eq 2 ] || { echo "::error::dist/ holds other files"; ls dist; exit 1; }
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           skip-existing: true
 
@@ -265,8 +267,9 @@ jobs:
     needs: [dist, publish-pypi]
     if: ${{ !cancelled() && needs.publish-pypi.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       - name: Install from PyPI, and import it
@@ -291,25 +294,26 @@ jobs:
       && needs.verify-pypi.result == 'success'
       && vars.PUBLISH_DOCS == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: docs
       url: https://docs.smarter-types.smarter.sh/
     permissions:
       contents: read
-      id-token: write
+      id-token: write # AWS sign-in with OIDC
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release.outputs.tag }}
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
       - name: Build the Sphinx site, warnings as errors
         run: |
           pip install -e ".[docs]"
           sphinx-build -W --keep-going -b html -d docs/build/doctrees docs/source docs/build/html
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.DOCS_AWS_ROLE_ARN }}
           # the bucket's region (terraform/docs). CloudFront is global.
