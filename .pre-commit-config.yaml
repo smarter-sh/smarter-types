@@ -43,12 +43,23 @@ repos:
     rev: v2.4.0
     hooks:
       - id: autoflake
-        args: [--remove-all-unused-imports]
+        args: [--in-place, --remove-all-unused-imports]
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
     hooks:
       - id: bandit
         args: ["-ll"]
+  # mypy checks the files named in pyproject.toml on every run, not only the
+  # changed files, so that a change can't break the types of a module it didn't
+  # touch. The hook's environment holds the package's dependencies, so that it
+  # runs in CI too.
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.1
+    hooks:
+      - id: mypy
+        args: []
+        pass_filenames: false
+        additional_dependencies: ["inflection>=0.5,<1"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -70,5 +81,8 @@ repos:
     hooks:
       - id: commitlint
         stages: [commit-msg]
+        # The latest Node.js release can be a prerelease (v27.0.0-alpha), whose version nodeenv
+        # cannot parse, so the hook's environment failed to install. The latest LTS is a release.
+        language_version: lts
         additional_dependencies:
           ["@commitlint/config-conventional", "@commitlint/config-angular"]
