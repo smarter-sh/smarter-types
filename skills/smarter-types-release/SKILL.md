@@ -197,7 +197,7 @@ A release reaches its users only when they raise their requirement:
   `manage.py` while it builds, so a platform change that needs a new kind
   can't be built until that version is on PyPI. To test before then, build a
   wheel (`python -m build --wheel`) and `pip install --no-deps` it into the
-  running `smarter-app` container (`../smarter/skills/smarter-docker-environment`).
+  running `smarter-api` container (`../smarter/skills/smarter-docker-environment`).
 - **The SDK** (`../smarter-python`) requires `smarter-types>=<version>` in its
   `pyproject.toml` and `requirements/in/`.
 
