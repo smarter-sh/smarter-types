@@ -78,6 +78,8 @@ def test_every_kind_has_a_place_in_the_order():
     ("dependency", "dependent"),
     [
         ("Account", "User"),
+        ("Account", "Secret"),
+        ("Secret", "User"),
         ("User", "SmarterAuthToken"),
         ("SmarterAuthToken", "LLMClient"),
         ("Secret", "Provider"),

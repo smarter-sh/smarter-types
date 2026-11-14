@@ -215,12 +215,14 @@ class SAMKinds(SmarterEnumAbstract):
 
         #. **Account**. Every other resource belongs to an account, so the account comes first. It
            names nothing.
-        #. **User**. A user is a member of an account, and owns the resources that it applies.
+        #. **Secret**. A Secret holds a password or an api key, and names nothing: it belongs to the user
+           who applies it, not to a User that the manifests declare. Nearly everything after it may name a
+           Secret: Users (``spec.config.passwordSecret``), Providers, Proxies, LLMHosts, Connections,
+           MCPClients, Vectorsearches and the search plugins. So it comes before all of them.
+        #. **User**. A user is a member of the accounts that ``spec.accounts`` lists, and its
+           ``spec.config.passwordSecret`` names a Secret.
         #. **SmarterAuthToken**. An api key's ``spec.username`` names its User. It comes before the
            LLMClients, whose ``spec.apiKey`` may name one.
-        #. **Secret**. A Secret holds a password or an api key, and names nothing, but nearly everything
-           after it may name a Secret: Providers, Proxies, LLMHosts, Connections, MCPClients,
-           Vectorsearches and the search plugins. So it comes before all of them.
         #. **Provider**. An LLM provider names the Secret that holds its api key. LLMClients,
            Guardrails, Proxies and Vectorstores name a Provider, so it comes before them.
         #. **Proxy**. ``spec.provider`` names a Provider, and ``spec.apiKey`` a Secret.
@@ -266,9 +268,9 @@ class SAMKinds(SmarterEnumAbstract):
         """
         return (
             cls.ACCOUNT.value,
+            cls.SECRET.value,
             cls.USER.value,
             cls.AUTH_TOKEN.value,
-            cls.SECRET.value,
             cls.PROVIDER.value,
             cls.PROXY.value,
             cls.LLM_HOST_COMPUTE.value,
