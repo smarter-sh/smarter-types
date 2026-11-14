@@ -50,8 +50,8 @@ in it. A kind that isn't a SAM kind ranks last. Sort by it:
         apply(manifest)  # e.g. the SDK's client, or the smarter cli
 
 ``sorted()`` is stable, so manifests of the same kind keep their order.
-Accounts come first, because everything belongs to one; Secrets come before
-everything that names a Secret; LLMClients come after the Plugins, Guardrails,
+Accounts come first, because everything belongs to one; Secrets come next,
+before everything that names a Secret, Users included; LLMClients come after the Plugins, Guardrails,
 MCPClients and CustomDomains they name; and Budgets come last, because they can
 name nearly any kind of resource. The docstring of
 :meth:`~smarter_types.kinds.SAMKinds.apply_order` gives every kind's place,

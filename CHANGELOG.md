@@ -1,3 +1,10 @@
+## [0.2.1-alpha.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.0...v0.2.1-alpha.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **kinds:** apply Secrets before Users ([e106249](https://github.com/smarter-sh/smarter-types/commit/e106249b3e21ed7bee8888e913fbc04ec0e93e69))
+
 # [0.2.0](https://github.com/smarter-sh/smarter-types/compare/v0.1.0...v0.2.0) (2026-10-30)
 
 
