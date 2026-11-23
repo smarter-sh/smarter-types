@@ -148,6 +148,7 @@ class SmarterJournalCliCommands(SmarterEnumAbstract):
     DELETE = "delete"
     DEPLOY = "deploy"
     DESCRIBE = "describe"
+    DOCUMENTS = "documents"
     ENABLE_JOURNAL = "journal"  # FIXNOTE: THIS IS AMBIGUOUS
     GET = "get"
     JSON_SCHEMA = "json_schema"
@@ -190,6 +191,7 @@ class SmarterJournalCliCommands(SmarterEnumAbstract):
             (cls.VALIDATE.value, cls.VALIDATE.value),
             (cls.WHOAMI.value, cls.WHOAMI.value),
             (cls.RESOURCES.value, cls.RESOURCES.value),
+            (cls.DOCUMENTS.value, cls.DOCUMENTS.value),
         ]
 
     @classmethod
@@ -218,6 +220,7 @@ class SmarterJournalCliCommands(SmarterEnumAbstract):
             cls.VALIDATE.value: "validated",
             cls.WHOAMI.value: "fetched identity",
             cls.RESOURCES.value: "fetched resources",
+            cls.DOCUMENTS.value: "fetched documents",
         }
 
     @classmethod

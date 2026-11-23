@@ -40,6 +40,7 @@ def test_commands_choices_and_past_tense():
         ("http://localhost:9357/api/v1/cli/example_manifest/Account/", "example_manifest"),
         (b"http://localhost:9357/api/v1/cli/apply/", "apply"),
         ("https://platform.example.com/api/v1/cli/whoami/", "whoami"),
+        ("http://localhost:9357/api/v1/cli/documents/Vectorstore/?name=handbook", "documents"),
         ("http://localhost:9357/dashboard/", None),
     ],
 )
