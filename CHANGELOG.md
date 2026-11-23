@@ -1,3 +1,10 @@
+# [0.3.0-alpha.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.1-alpha.1...v0.3.0-alpha.1) (2026-11-23)
+
+
+### Features
+
+* **journal:** add the documents cli command ([c70930d](https://github.com/smarter-sh/smarter-types/commit/c70930dcb7ce2ee63893d17756dccbd1408cf606))
+
 ## [0.2.1-alpha.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.0...v0.2.1-alpha.1) (2026-11-14)
 
 
