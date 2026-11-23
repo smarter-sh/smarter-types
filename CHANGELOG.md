@@ -1,9 +1,9 @@
-# [0.3.0-alpha.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.1-alpha.1...v0.3.0-alpha.1) (2026-11-23)
+## [0.2.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.0...v0.2.1) (2026-11-14)
 
 
-### Features
+### Bug Fixes
 
-* **journal:** add the documents cli command ([c70930d](https://github.com/smarter-sh/smarter-types/commit/c70930dcb7ce2ee63893d17756dccbd1408cf606))
+* **kinds:** apply Secrets before Users ([e106249](https://github.com/smarter-sh/smarter-types/commit/e106249b3e21ed7bee8888e913fbc04ec0e93e69))
 
 ## [0.2.1-alpha.1](https://github.com/smarter-sh/smarter-types/compare/v0.2.0...v0.2.1-alpha.1) (2026-11-14)
 
